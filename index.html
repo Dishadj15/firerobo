@@ -345,13 +345,18 @@
         }
 
         function updateDashboard(feed) {
-            // Field Mapping: Field1: Fire Status (0/1), Field2: Intensity, Field3: Direction, Field4: Pump (0/1), Field5: Motor (0-4)
+            // Field Mapping based on user's data sheet (image_4b2281.jpg)
+            // Field1: Fire_Status (0/1)
+            // Field2: Fire_Intensity (0-1023)
+            // Field3: Fire_Direction (0=None, 1=Left, 2=Front, 3=Right)
+            // Field4: Pump_State (0=OFF, 1=ON)
+            // Field5: Motor_State (0=Stop, 1=Forward, 2=Backward, 3=Left, 4=Right)
 
             const fireStatus = feed.field1;
             const intensity = feed.field2;
-            const direction = feed.field3;
+            const directionCode = feed.field3;
             const pumpStatus = feed.field4;
-            const motorState = feed.field5;
+            const motorStateCode = feed.field5;
             const timestamp = new Date(feed.created_at).toLocaleTimeString();
 
             // 1. UPDATE FIRE STATUS
@@ -371,8 +376,18 @@
             // 2. UPDATE INTENSITY
             document.getElementById('disp-intensity').innerText = intensity || '0';
 
-            // 3. UPDATE DIRECTION
-            document.getElementById('disp-direction').innerText = direction || '--';
+            // 3. UPDATE DIRECTION (Mapping Field 3)
+            const directionEl = document.getElementById('disp-direction');
+            let directionText = "--";
+            switch(directionCode) {
+                case '0': directionText = "None"; break;
+                case '1': directionText = "Left"; break;
+                case '2': directionText = "Front"; break;
+                case '3': directionText = "Right"; break;
+                default: directionText = directionCode || "N/A";
+            }
+            directionEl.innerText = directionText;
+
 
             // 4. UPDATE PUMP
             const pumpEl = document.getElementById('disp-pump');
@@ -384,16 +399,16 @@
                 pumpEl.style.color = "#7F8C8D"; 
             }
 
-            // 5. UPDATE MOTOR STATE (Mapping 0-4)
+            // 5. UPDATE MOTOR STATE (Mapping Field 5)
             const motorEl = document.getElementById('disp-motor');
             let motorText = "Stop";
-            switch(motorState) {
+            switch(motorStateCode) {
                 case '0': motorText = "Stop"; break;
                 case '1': motorText = "Forward"; break;
                 case '2': motorText = "Backward"; break;
-                case '3': motorText = "Turning Left"; break;
-                case '4': motorText = "Turning Right"; break;
-                default: motorText = motorState || "Idle";
+                case '3': motorText = "Turn Left"; break;
+                case '4': motorText = "Turn Right"; break;
+                default: motorText = motorStateCode || "Idle";
             }
             motorEl.innerText = motorText;
 
