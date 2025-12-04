@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart Fire Robot — Monitoring (Light Theme, Bigger Charts)</title>
+  <meta name="description" content="Light themed IoT dashboard for Smart Fire Extinguishing Robot (ThingSpeak live data)" />
+  <style>
+    /* ---------------- Soft Light Theme (Option A) with bigger charts ---------------- */
+    :root{
+      --bg:#f6f8fa;
+      --page-pad:20px;
+      --card:#ffffff;
+      --muted:#6b7280; /* gray-500 */
+      --accent:#0d6efd; /* blue */
+      --accent-2:#0891b2; /* teal-ish for variety */
+      --good:#16a34a; /* green */
+      --bad:#dc3545; /* red */
+      --glass: rgba(13,110,253,0.06);
+      --radius:12px;
+      --max-width:1200px;
+      --nav-height:68px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,var(--bg),#eef2f6);
+      color:#0f1724;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding-bottom:40px;
+    }
+
+    .container{max-width:var(--max-width);margin:18px auto;padding:var(--page-pad)}
+
+    /* NAV */
+    nav{
+      height:var(--nav-height);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 14px 22px;
+      border-radius:14px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
+      box-shadow: 0 6px 22px rgba(16,24,40,0.08);
+      margin-bottom:18px;
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#0b5ed7);
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:white;
+      box-shadow: 0 6px 18px rgba(13,110,253,0.12);
+      font-family: Inter, sans-serif;
+    }
+    .navlinks{display:flex;gap:12px;align-items:center}
+    .navlinks a{color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:10px;font-weight:600}
+    .navlinks a.active, .navlinks a:hover{background:var(--glass);color:var(--accent)}
+
+    /* HERO */
+    .hero{
+      display:flex;
+      gap:28px;
+      align-items:center;
+      justify-content:space-between;
+      background: transparent;
+    }
+    .hero-left{max-width:60%}
+    .hero h1{margin:0;font-size:clamp(20px, 3vw, 32px); color:#07203a}
+    .hero p{color:var(--muted);margin-top:10px}
+    .cta{margin-top:18px;display:flex;gap:12px}
+    .btn{
+      padding:10px 16px;border-radius:10px;border:0;cursor:pointer;font-weight:700;
+      background:linear-gradient(90deg,var(--accent),#0b5ed7);color:white;
+      box-shadow: 0 8px 18px rgba(13,110,253,0.12);
+    }
+    .btn.secondary{
+      background:transparent;color:var(--accent);border:1px solid rgba(13,110,253,0.08)
+    }
+
+    /* CARD */
+    .card{
+      background:var(--card);
+      padding:16px;border-radius:var(--radius);
+      box-shadow: 0 10px 26px rgba(16,24,40,0.05);
+    }
+    .grid{display:grid;gap:16px}
+    /* Modified 3-column layout so middle column (charts) is larger */
+    .cols-3{grid-template-columns: 1fr 1.6fr 0.9fr; align-items:start}
+    .cols-2{grid-template-columns:repeat(2,1fr)}
+    .cols-1{grid-template-columns:1fr}
+
+    .widget{display:flex;gap:12px;align-items:center;padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(13,110,253,0.02),transparent)}
+    .title{color:var(--muted);font-size:13px}
+    .status-indicator{width:18px;height:18px;border-radius:50%;box-shadow: 0 2px 6px rgba(16,24,40,0.08) inset}
+
+    /* gauge */
+    .gauge-wrap{text-align:center;padding:8px}
+    .gauge{
+      width:180px;height:180px;margin:0 auto;display:block;
+    }
+    .gauge .label{font-size:13px;color:var(--muted);margin-top:6px}
+
+    /* table */
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;text-align:left;border-bottom:1px solid #eef2f6;font-size:14px}
+    th{color:var(--muted);font-weight:700}
+
+    /* forms */
+    form{display:grid;gap:12px}
+    input[type="text"],input[type="password"],input[type="email"],select{
+      padding:10px;border-radius:10px;border:1px solid #e6eef6;background:transparent;color:inherit;
+      font-size:14px;
+    }
+    .muted{color:var(--muted);font-size:13px}
+
+    /* responsive adjustments
+       - when width < 1100px, reduce gap and make columns stack
+       - when width < 900px, single column layout
+    */
+    @media (max-width:1100px){
+      .cols-3{grid-template-columns: 1fr 1fr; grid-auto-rows: auto}
+      /* place charts below left panel on medium screens */
+      .cols-3 > :nth-child(2){ order: 2 }
+    }
+    @media (max-width:900px){
+      .hero{flex-direction:column;align-items:flex-start}
+      .hero-left{max-width:100%}
+      .cols-3{grid-template-columns:1fr}
+      .cols-2{grid-template-columns:1fr}
+      nav{flex-direction:column;gap:8px;height:auto}
+    }
+
+    footer{color:var(--muted);text-align:center;margin-top:18px;font-size:13px}
+
+    /* Bigger ThingSpeak frames styling container for nicer look */
+    .charts-col iframe{
+      border:1px solid #e9f0fb;border-radius:10px;background:white;
+      width:100%;
+      height:460px; /* MAIN increased height for clearer graphs */
+    }
+    /* secondary chart still large but slightly smaller */
+    .charts-col .smallframe{
+      height:360px;
+    }
+
+    /* better scrollbar for the recent table */
+    .table-scroll{max-height:520px;overflow:auto;border-radius:8px;padding-right:8px}
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="brand">
+      <div class="logo">SF</div>
+      <div>
+        <div style="font-weight:800;color:#07203a">Smart Fire Robot</div>
+        <div class="muted" style="font-size:12px">Monitoring System</div>
+      </div>
+    </div>
+
+    <div class="navlinks" id="nav-links">
+      <a href="#" id="nav-home" class="active">Home</a>
+      <a href="#" id="nav-dashboard" style="display:none">Dashboard</a>
+      <a href="#" id="nav-logout" style="display:none">Logout</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <!-- LANDING -->
+    <section id="page-home">
+      <div class="hero">
+        <div class="hero-left">
+          <h1>Smart Fire Extinguishing Robot — Live Monitoring</h1>
+          <p>Monitor the robot’s sensors in real-time using ThingSpeak. See fire status, intensity, direction, pump and motor state with live charts and logs.</p>
+
+          <div class="cta">
+            <button class="btn" id="cta-login">Login</button>
+            <button class="btn secondary" id="cta-signup">Signup</button>
+          </div>
+        </div>
+
+        <div style="min-width:340px;max-width:520px">
+          <div class="card">
+            <h3 style="margin:0 0 10px 0">Live preview</h3>
+            <div class="muted">Latest reading snapshot (fetched from ThingSpeak)</div>
+
+            <div style="margin-top:12px" class="grid cols-2">
+              <div class="widget" style="flex-direction:column;align-items:flex-start">
+                <div class="title">Fire Status</div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div id="preview-fire-text" style="font-weight:800;font-size:16px">—</div>
+                  <div id="preview-fire-dot" class="status-indicator" style="background:gray"></div>
+                </div>
+              </div>
+
+              <div class="widget" style="flex-direction:column;align-items:flex-start">
+                <div class="title">Pump</div>
+                <div id="preview-pump" style="font-weight:700">—</div>
+              </div>
+
+              <div class="widget" style="flex-direction:column;align-items:flex-start">
+                <div class="title">Direction</div>
+                <div id="preview-dir" style="font-weight:700">—</div>
+              </div>
+
+              <div class="widget" style="flex-direction:column;align-items:flex-start">
+                <div class="title">Motor</div>
+                <div id="preview-motor" style="font-weight:700">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="card">
+            <div class="muted">ThingSpeak charts</div>
+            <div style="margin-top:8px">
+              <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <!-- landing preview charts kept medium -->
+                <div style="flex:1;min-width:260px;max-width:420px">
+                  <iframe src="https://thingspeak.com/channels/3192760/charts/2?api_key=U9KV0DCCHXXX90QU&width=600" style="border:0;height:240px;width:100%;border-radius:8px;background:white"></iframe>
+                </div>
+                <div style="flex:1;min-width:260px;max-width:420px">
+                  <iframe src="https://thingspeak.com/channels/3192760/charts/4?api_key=U9KV0DCCHXXX90QU&width=600" style="border:0;height:240px;width:100%;border-radius:8px;background:white"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- AUTH (signup/login) -->
+    <section id="page-auth" style="display:none;margin-top:18px">
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px" class="card">
+          <h3 id="auth-title">Login</h3>
+
+          <form id="auth-form">
+            <input type="text" id="username" placeholder="Username" required />
+            <input type="password" id="password" placeholder="Password" required />
+            <div id="auth-error" class="muted" style="color:#b91c1c"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" id="auth-submit" type="submit">Login</button>
+              <button class="btn secondary" id="switch-to-signup" type="button">Switch to Signup</button>
+            </div>
+          </form>
+
+          <div class="muted" style="margin-top:10px">
+            Demo authentication uses localStorage. For production, use a secure server-side authentication.
+          </div>
+        </div>
+
+        <div style="width:360px" class="card">
+          <div style="font-weight:800">How to demo</div>
+          <ol style="margin:8px 0 0 18px" class="muted">
+            <li>Create an account using Signup (username & password).</li>
+            <li>Login to access the Dashboard.</li>
+            <li>Dashboard will poll ThingSpeak every 5s and update UI & table.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" style="display:none;margin-top:18px">
+      <div class="grid cols-1">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <h2 style="margin:0">Dashboard</h2>
+              <div class="muted">Live sensor feed from ThingSpeak (Channel: 3192760)</div>
+            </div>
+
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="muted">Auto-refresh interval:</div>
+              <select id="refresh-interval" style="padding:8px;border-radius:8px;background:transparent;color:inherit;border:1px solid #e9f3ff">
+                <option value="5000">5 sec</option>
+                <option value="10000">10 sec</option>
+                <option value="2000">2 sec</option>
+                <option value="0">Off (manual)</option>
+              </select>
+              <button class="btn secondary" id="btn-refresh-now">Refresh now</button>
+            </div>
+          </div>
+
+          <div style="height:16px"></div>
+
+          <!-- 3-column grid: left=status, middle=charts (now larger), right=table -->
+          <div class="grid cols-3">
+            <!-- LEFT: status & gauge -->
+            <div class="card" style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <div class="title">Fire Status</div>
+                  <div id="fire-status-text" style="font-size:20px;font-weight:800">—</div>
+                </div>
+                <div style="text-align:right">
+                  <div id="fire-dot" class="status-indicator" style="background:gray"></div>
+                  <div class="muted" style="font-size:12px;margin-top:6px">0 = No Fire, 1 = Fire</div>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:18px;align-items:center">
+                <div style="flex:1">
+                  <div class="title">Fire Intensity</div>
+                  <div class="gauge-wrap">
+                    <!-- SVG gauge, same as before -->
+                    <svg class="gauge" viewBox="0 0 120 120" id="gauge-svg">
+                      <defs>
+                        <linearGradient id="g1" x1="0" x2="1">
+                          <stop offset="0%" stop-color="#0d6efd" />
+                          <stop offset="100%" stop-color="#0891b2" />
+                        </linearGradient>
+                      </defs>
+                      <circle cx="60" cy="60" r="44" stroke="#eef3fb" stroke-width="12" fill="none"></circle>
+                      <circle cx="60" cy="60" r="44" stroke="url(#g1)" stroke-width="12" fill="none"
+                              stroke-linecap="round" transform="rotate(-90 60 60)"
+                              stroke-dasharray="0 300" id="gauge-arc"></circle>
+                      <text x="60" y="62" text-anchor="middle" font-size="16" id="gauge-text">—</text>
+                    </svg>
+                    <div class="label">Lower ADC = Stronger Fire (0 → 1023)</div>
+                  </div>
+                </div>
+
+                <div style="width:220px">
+                  <div class="title">Pump State</div>
+                  <div id="pump-state" style="font-weight:700;font-size:15px">—</div>
+
+                  <div style="height:12px"></div>
+
+                  <div class="title">Direction</div>
+                  <div id="fire-direction" style="font-weight:700">—</div>
+
+                  <div style="height:12px"></div>
+
+                  <div class="title">Motor</div>
+                  <div id="motor-state" style="font-weight:700">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MIDDLE: Much larger ThingSpeak charts (BIGGER now) -->
+            <div class="card charts-col">
+              <h4 style="margin:0 0 8px 0">Charts</h4>
+              <div class="muted" style="margin-bottom:8px">Embedded ThingSpeak charts (live) — enlarged for clarity</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <!-- NOTE: height increased to 460px for main chart -->
+                <iframe src="https://thingspeak.com/channels/3192760/charts/2?api_key=U9KV0DCCHXXX90QU&width=1000" title="Fire Intensity Chart"></iframe>
+
+                <!-- secondary chart increased to 360px -->
+                <iframe class="smallframe" src="https://thingspeak.com/channels/3192760/charts/4?api_key=U9KV0DCCHXXX90QU&width=1000" title="Pump State Chart"></iframe>
+              </div>
+            </div>
+
+            <!-- RIGHT: recent readings table -->
+            <div class="card">
+              <h4 style="margin:0 0 8px 0">Recent Readings</h4>
+              <div class="muted" style="margin-bottom:8px">Latest values from ThingSpeak</div>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr>
+                    <th>Time</th><th>Fire</th><th>Intensity</th><th>Direction</th><th>Pump</th><th>Motor</th>
+                  </tr></thead>
+                  <tbody id="recent-table-body">
+                    <tr><td colspan="6" class="muted">No data yet</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Built for demo — data from ThingSpeak (Channel 3192760). &nbsp;© Smart Fire Robot
+    </footer>
+  </main>
+
+  <script>
+    /* ============================
+       Configuration (ThingSpeak)
+       ============================ */
+    const THINGSPEAK_CHANNEL = 3192760;
+    const THINGSPEAK_API_KEY = 'U9KV0DCCHXXX90QU';
+    const THINGSPEAK_LATEST_ENDPOINT = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL}/feeds.json?api_key=${THINGSPEAK_API_KEY}&results=1`;
+    const THINGSPEAK_RECENT_ENDPOINT = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL}/feeds.json?api_key=${THINGSPEAK_API_KEY}&results=10`;
+
+    /* ============================
+       UI element references
+    */
+    const pageHome = document.getElementById('page-home');
+    const pageAuth = document.getElementById('page-auth');
+    const pageDashboard = document.getElementById('page-dashboard');
+
+    const navHome = document.getElementById('nav-home');
+    const navDashboard = document.getElementById('nav-dashboard');
+    const navLogout = document.getElementById('nav-logout');
+
+    const ctaLogin = document.getElementById('cta-login');
+    const ctaSignup = document.getElementById('cta-signup');
+
+    const authTitle = document.getElementById('auth-title');
+    const authForm = document.getElementById('auth-form');
+    const authSubmit = document.getElementById('auth-submit');
+    const switchToSignupBtn = document.getElementById('switch-to-signup');
+    const authError = document.getElementById('auth-error');
+
+    const refreshSelect = document.getElementById('refresh-interval');
+    const btnRefreshNow = document.getElementById('btn-refresh-now');
+
+    const previewFireText = document.getElementById('preview-fire-text');
+    const previewFireDot = document.getElementById('preview-fire-dot');
+    const previewPump = document.getElementById('preview-pump');
+    const previewDir = document.getElementById('preview-dir');
+    const previewMotor = document.getElementById('preview-motor');
+
+    const fireStatusText = document.getElementById('fire-status-text');
+    const fireDot = document.getElementById('fire-dot');
+    const pumpStateEl = document.getElementById('pump-state');
+    const fireDirectionEl = document.getElementById('fire-direction');
+    const motorStateEl = document.getElementById('motor-state');
+    const gaugeArc = document.getElementById('gauge-arc');
+    const gaugeText = document.getElementById('gauge-text');
+    const recentTableBody = document.getElementById('recent-table-body');
+
+    /* ============================
+       Demo Authentication helpers (localStorage)
+    */
+    function getUsers(){ try { return JSON.parse(localStorage.getItem('sfr_users')||'{}'); } catch(e){ return {}; } }
+    function setUsers(u){ localStorage.setItem('sfr_users', JSON.stringify(u)); }
+    function setLoggedIn(username){ localStorage.setItem('sfr_logged_in', username); updateNavForAuth(true); }
+    function clearLoggedIn(){ localStorage.removeItem('sfr_logged_in'); updateNavForAuth(false); }
+    function getLoggedIn(){ return localStorage.getItem('sfr_logged_in'); }
+
+    function updateNavForAuth(isLoggedIn){
+      if(isLoggedIn){
+        navDashboard.style.display = 'inline-block';
+        navLogout.style.display = 'inline-block';
+        navHome.classList.remove('active');
+      } else {
+        navDashboard.style.display = 'none';
+        navLogout.style.display = 'none';
+        navHome.classList.add('active');
+      }
+    }
+
+    /* ============================
+       Simple page router
+    */
+    function showPage(page){
+      pageHome.style.display = 'none';
+      pageAuth.style.display = 'none';
+      pageDashboard.style.display = 'none';
+      navHome.classList.remove('active');
+      navDashboard.classList.remove('active');
+
+      if(page === 'home'){ pageHome.style.display = 'block'; navHome.classList.add('active'); }
+      else if(page === 'auth'){ pageAuth.style.display = 'block'; }
+      else if(page === 'dashboard'){ pageDashboard.style.display = 'block'; navDashboard.classList.add('active'); }
+    }
+
+    /* ============================
+       Auth UI controls
+    */
+    let isSignupMode = false;
+    function setAuthMode(signup){
+      isSignupMode = signup;
+      authTitle.textContent = signup ? 'Signup' : 'Login';
+      authSubmit.textContent = signup ? 'Create account' : 'Login';
+      switchToSignupBtn.textContent = signup ? 'Switch to Login' : 'Switch to Signup';
+      authError.textContent = '';
+    }
+
+    switchToSignupBtn.addEventListener('click', ()=> setAuthMode(!isSignupMode));
+    ctaLogin.addEventListener('click', ()=> { setAuthMode(false); showPage('auth'); });
+    ctaSignup.addEventListener('click', ()=> { setAuthMode(true); showPage('auth'); });
+
+    authForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if(!username || !password){ authError.textContent = 'Please fill both fields'; return; }
+      const users = getUsers();
+      if(isSignupMode){
+        if(users[username]){ authError.textContent = 'Username exists'; return; }
+        users[username] = { password };
+        setUsers(users);
+        setLoggedIn(username);
+        showPage('dashboard');
+        startAutoRefresh();
+      } else {
+        if(!users[username] || users[username].password !== password){ authError.textContent = 'Invalid credentials'; return; }
+        setLoggedIn(username);
+        showPage('dashboard');
+        startAutoRefresh();
+      }
+    });
+
+    document.getElementById('nav-dashboard').addEventListener('click', (e)=>{
+      e.preventDefault();
+      if(getLoggedIn()) showPage('dashboard'); else showPage('auth');
+    });
+    document.getElementById('nav-home').addEventListener('click', (e)=>{ e.preventDefault(); showPage('home'); });
+    navLogout.addEventListener('click', (e)=>{ e.preventDefault(); clearLoggedIn(); stopAutoRefresh(); showPage('home'); });
+
+    /* ============================
+       ThingSpeak parsing & UI update helpers
+    */
+    function parseFeed(feed){
+      const f1 = feed.field1 != null ? Number(feed.field1) : null;
+      const f2 = feed.field2 != null ? Number(feed.field2) : null;
+      const f3 = feed.field3 != null ? Number(feed.field3) : null;
+      const f4 = feed.field4 != null ? Number(feed.field4) : null;
+      const f5 = feed.field5 != null ? Number(feed.field5) : null;
+      return { f1,f2,f3,f4,f5,created_at:feed.created_at, entry_id:feed.entry_id };
+    }
+    function dirText(n){ if(n===1) return 'Left'; if(n===2) return 'Front'; if(n===3) return 'Right'; return 'None'; }
+    function motorText(n){ if(n===0) return 'Stop'; if(n===1) return 'Forward'; if(n===2) return 'Backward'; if(n===3) return 'Left'; if(n===4) return 'Right'; return 'Unknown'; }
+
+    function setGauge(value){
+      const gaugeArcEl = document.getElementById('gauge-arc');
+      const gaugeTextEl = document.getElementById('gauge-text');
+      if(value == null || isNaN(value)){
+        gaugeArcEl.setAttribute('stroke-dasharray', '0 300'); gaugeTextEl.textContent = '—'; return;
+      }
+      const max = 1023;
+      const percent = Math.max(0, Math.min(100, Math.round((1 - (value / max)) * 100)));
+      gaugeTextEl.textContent = `${value} (${percent}%)`;
+      const circumference = 280;
+      const dash = (percent/100) * circumference;
+      gaugeArcEl.setAttribute('stroke-dasharray', `${dash} ${circumference}`);
+    }
+
+    function updatePreviewUI(parsed){
+      if(!parsed) return;
+      previewFireText.textContent = parsed.f1 === 1 ? 'FIRE' : 'No Fire';
+      previewFireDot.style.background = parsed.f1 === 1 ? 'var(--bad)' : 'var(--good)';
+      previewPump.textContent = parsed.f4 === 1 ? 'ON' : 'OFF';
+      previewDir.textContent = dirText(parsed.f3);
+      previewMotor.textContent = motorText(parsed.f5);
+    }
+
+    function updateDashboardUI(parsed){
+      if(!parsed) return;
+      fireStatusText.textContent = parsed.f1 === 1 ? 'FIRE DETECTED' : 'No Fire';
+      fireDot.style.background = parsed.f1 === 1 ? 'var(--bad)' : 'var(--good)';
+      pumpStateEl.textContent = parsed.f4 === 1 ? 'ON' : 'OFF';
+      fireDirectionEl.textContent = dirText(parsed.f3);
+      motorStateEl.textContent = motorText(parsed.f5);
+      setGauge(parsed.f2);
+      updatePreviewUI(parsed);
+    }
+
+    /* ============================
+       Fetching ThingSpeak data
+    */
+    async function fetchLatest(){
+      try{
+        const res = await fetch(THINGSPEAK_LATEST_ENDPOINT);
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if(data && data.feeds && data.feeds.length > 0){
+          const p = parseFeed(data.feeds[0]);
+          updateDashboardUI(p);
+        }
+      }catch(err){
+        console.error('Error fetching latest feed:', err);
+      }
+    }
+
+    async function fetchRecent(){
+      try{
+        const res = await fetch(THINGSPEAK_RECENT_ENDPOINT);
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if(data && data.feeds){
+          const feeds = data.feeds.slice().reverse();
+          recentTableBody.innerHTML = '';
+          for(const f of feeds){
+            const p = parseFeed(f);
+            const tr = document.createElement('tr');
+            const time = p.created_at ? new Date(p.created_at).toLocaleString() : '—';
+            tr.innerHTML = `<td>${time}</td>
+                            <td>${p.f1===1?'<strong style="color:var(--bad)">FIRE</strong>':'No'}</td>
+                            <td>${p.f2!=null?p.f2:'—'}</td>
+                            <td>${dirText(p.f3)}</td>
+                            <td>${p.f4===1?'ON':'OFF'}</td>
+                            <td>${motorText(p.f5)}</td>`;
+            recentTableBody.appendChild(tr);
+          }
+        }
+      }catch(err){
+        console.error('Error fetching recent feeds:', err);
+      }
+    }
+
+    /* ============================
+       Auto-refresh controls
+    */
+    let refreshTimer = null;
+    function startAutoRefresh(){
+      updateNavForAuth(true);
+      showPage('dashboard');
+      fetchLatest(); fetchRecent();
+      const ms = Number(refreshSelect.value);
+      if(ms > 0){
+        stopAutoRefresh();
+        refreshTimer = setInterval(()=>{ fetchLatest(); fetchRecent(); }, ms);
+      }
+    }
+    function stopAutoRefresh(){ if(refreshTimer){ clearInterval(refreshTimer); refreshTimer = null; } }
+
+    refreshSelect.addEventListener('change', ()=>{
+      stopAutoRefresh();
+      const ms = Number(refreshSelect.value);
+      if(ms > 0 && getLoggedIn()){
+        fetchLatest(); fetchRecent();
+        refreshTimer = setInterval(()=>{ fetchLatest(); fetchRecent(); }, ms);
+      }
+    });
+    btnRefreshNow.addEventListener('click', ()=>{ fetchLatest(); fetchRecent(); });
+
+    /* ============================
+       Boot sequence
+    */
+    (function boot(){
+      const logged = getLoggedIn();
+      updateNavForAuth(!!logged);
+      if(logged){
+        setAuthMode(false);
+        startAutoRefresh();
+      } else {
+        showPage('home');
+      }
+    })();
+
+    // pause polling while page hidden
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.hidden) stopAutoRefresh();
+      else if(getLoggedIn() && Number(refreshSelect.value) > 0) startAutoRefresh();
+    });
+
+  </script>
+</body>
+</html>
